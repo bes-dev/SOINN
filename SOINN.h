@@ -58,6 +58,7 @@ namespace soinn
 
 		void init(boost::numeric::ublas::vector<double> v1, boost::numeric::ublas::vector<double> v2);
 		int addSignal(const boost::numeric::ublas::vector<double> &x);
+		VertexProperties getBestMatch(const boost::numeric::ublas::vector<double> &x);
 		void classify();
 		void save(std::string filename);
 		void load(std::string filename);

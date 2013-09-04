@@ -318,6 +318,26 @@ Graph SOINN::getGraph()
 	return graph;
 }
 
+VertexProperties SOINN::getBestMatch(const boost::numeric::ublas::vector<double> &x)
+{
+	double best_dist = std::numeric_limits<double>::max();
+	VertexIterator best_match;
+
+	VertexIterator vertex_current, vertex_end;
+	boost::tie(vertex_current, vertex_end) = boost::vertices(graph);
+
+	for(; vertex_current != vertex_end; ++vertex_current)
+	{
+		double dist = distance(x, graph[*vertex_current].weight);
+		if(dist < best_dist)
+		{
+			best_match = vertex_current;
+			best_dist = dist;
+		}
+	}
+	return graph[*best_match];
+}
+
 void SOINN::clear()
 {
 	graph.clear();
@@ -334,6 +354,7 @@ void SOINN::save(std::string filename)
 
 void SOINN::load(std::string filename)
 {
+	clear();
    	std::ifstream ifs(filename.c_str());
 	boost::archive::xml_iarchive ia(ifs);
 	ia >> BOOST_SERIALIZATION_NVP(*const_cast<SOINN*>(this));
