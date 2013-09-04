@@ -12,7 +12,7 @@ using namespace boost::numeric;
 #define E1(t) 1./t
 #define E2(t) 1./(100*t)
 
-SOINN::SOINN(int lambda, int age_max, double C, double alpha1, double alpha2, double alpha3, double beta, double gamma): class_count(0), iteration_count(0) ,lambda(lambda), age_max(age_max), alpha1(alpha1), alpha2(alpha2), alpha3(alpha3), beta(beta), gamma(gamma)
+SOINN::SOINN(int lambda, int age_max, double C, double alpha1, double alpha2, double alpha3, double beta, double gamma): class_count(0), iteration_count(0) ,lambda(lambda), age_max(age_max), C(C), alpha1(alpha1), alpha2(alpha2), alpha3(alpha3), beta(beta), gamma(gamma)
 {
 }
 
@@ -316,4 +316,25 @@ void SOINN::classify()
 Graph SOINN::getGraph()
 {
 	return graph;
+}
+
+void SOINN::clear()
+{
+	graph.clear();
+	class_count = 0;
+	iteration_count = 0;
+}
+
+void SOINN::save(std::string filename)
+{
+   	std::ofstream ofs(filename.c_str());
+	boost::archive::xml_oarchive oa(ofs);
+	oa << BOOST_SERIALIZATION_NVP(this);
+}
+
+void SOINN::load(std::string filename)
+{
+   	std::ifstream ifs(filename.c_str());
+	boost::archive::xml_iarchive ia(ifs);
+	ia >> BOOST_SERIALIZATION_NVP(*const_cast<SOINN*>(this));
 }
