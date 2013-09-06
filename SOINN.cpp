@@ -299,6 +299,7 @@ double SOINN::getMeanM()
 
 void SOINN::classify()
 {
+	addNewNodeAndRemoveUnnecessaryNodes();
 	size_t index = 0;
 	BGL_FORALL_VERTICES(v, graph, Graph)
 	{
