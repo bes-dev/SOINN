@@ -12,8 +12,9 @@ using namespace boost::numeric;
 #define E1(t) 1./t
 #define E2(t) 1./(100*t)
 
-SOINN::SOINN(int lambda, int age_max, double C, double alpha1, double alpha2, double alpha3, double beta, double gamma): class_count(0), iteration_count(0) ,lambda(lambda), age_max(age_max), C(C), alpha1(alpha1), alpha2(alpha2), alpha3(alpha3), beta(beta), gamma(gamma)
+SOINN::SOINN(int lambda, int age_max, double C, double alpha1, double alpha2, double alpha3, double beta, double gamma): layer_flag(1), class_count(0), iteration_count(0) ,lambda(lambda), age_max(age_max), C(C), alpha1(alpha1), alpha2(alpha2), alpha3(alpha3), beta(beta), gamma(gamma)
 {
+	std::srand(std::time(0));
 }
 
 SOINN::~SOINN()
@@ -21,6 +22,11 @@ SOINN::~SOINN()
 }
 
 void SOINN::init(boost::numeric::ublas::vector<double> v1, boost::numeric::ublas::vector<double> v2)
+{
+	initGraph(first_layer, v1, v2);
+}
+
+void SOINN::initGraph(Graph &graph, boost::numeric::ublas::vector<double> v1, boost::numeric::ublas::vector<double> v2)
 {
 	Vertex vertex_v1 = boost::add_vertex(graph);
 	graph[vertex_v1].weight = boost::numeric::ublas::vector<double>(v1);
@@ -36,12 +42,17 @@ void SOINN::init(boost::numeric::ublas::vector<double> v1, boost::numeric::ublas
 	graph[vertex_v2].class_id = -1;
 }
 
-int SOINN::addSignal(const boost::numeric::ublas::vector<double> &x)
+void SOINN::addSignal(const boost::numeric::ublas::vector<double> &x)
+{
+	addSignalInGraph(first_layer, x);
+}
+
+void SOINN::addSignalInGraph(Graph &graph, const boost::numeric::ublas::vector<double> &x)
 {
 	iteration_count++;
 	VertexIterator match_first, match_second;
-	findBestMatches(x, match_first, match_second);
-	if(!isWithinThreshold(x, match_first, match_second))
+	findBestMatches(graph, x, match_first, match_second);
+	if(!isWithinThreshold(graph, x, match_first, match_second))
 	{
 		Vertex vertex = boost::add_vertex(graph);
 		graph[vertex].weight = boost::numeric::ublas::vector<double>(x);
@@ -49,7 +60,7 @@ int SOINN::addSignal(const boost::numeric::ublas::vector<double> &x)
 		graph[vertex].R = 0.;
 		graph[vertex].error = 0.;
 		graph[vertex].class_id = -1;
-		return 0;
+		return;
 	}
 	std::pair<Edge, bool> pe = boost::edge(*match_first, *match_second, graph);
 	if(!pe.second)
@@ -61,17 +72,15 @@ int SOINN::addSignal(const boost::numeric::ublas::vector<double> &x)
 	{
 		graph[pe.first].age = 0;
 	}
-	incrementEdgeAge(match_first);
+	incrementEdgeAge(graph, match_first);
 	graph[*match_first].error += distance(x, graph[*match_first].weight);
 	graph[*match_first].M++;
-	updateWeights(x, match_first);
-	deleteOldEdges();
+	updateWeights(graph, x, match_first);
+	deleteOldEdges(graph);
 	if(iteration_count % lambda == 0)
 	{
-		addNewNodeAndRemoveUnnecessaryNodes();
+		addNewNodeAndRemoveUnnecessaryNodes(graph);
 	}
-
-	return 0;
 }
 
 double SOINN::distance(const boost::numeric::ublas::vector<double> &a, const boost::numeric::ublas::vector<double> &b)
@@ -79,7 +88,7 @@ double SOINN::distance(const boost::numeric::ublas::vector<double> &a, const boo
 	return ublas::norm_2(a - b);
 }
 
-int SOINN::findBestMatches(const boost::numeric::ublas::vector<double> &x, VertexIterator &match_first, VertexIterator &match_second)
+int SOINN::findBestMatches(Graph &graph, const boost::numeric::ublas::vector<double> &x, VertexIterator &match_first, VertexIterator &match_second)
 {
 	double dist_first = std::numeric_limits<double>::max();
 	double dist_second = std::numeric_limits<double>::max();
@@ -107,7 +116,7 @@ int SOINN::findBestMatches(const boost::numeric::ublas::vector<double> &x, Verte
 	return 0;
 }
 
-double SOINN::getSimilarityThreshold(const VertexIterator &vertex)
+double SOINN::getSimilarityThreshold(Graph &graph, const VertexIterator &vertex)
 {
 	double dist = 0.0;
 	if(boost::out_degree(*vertex, graph) == 0)
@@ -145,20 +154,22 @@ double SOINN::getSimilarityThreshold(const VertexIterator &vertex)
 	return dist;
 }
 
-bool SOINN::isWithinThreshold(const boost::numeric::ublas::vector<double> &x, const VertexIterator &match_first, const VertexIterator &match_second)
+bool SOINN::isWithinThreshold(Graph &graph, const boost::numeric::ublas::vector<double> &x, const VertexIterator &match_first, const VertexIterator &match_second)
 {
-	if(distance(x, graph[*match_first].weight) > getSimilarityThreshold(match_first))
+	double T1 = layer_flag ? getSimilarityThreshold(graph, match_first) : Tc;
+	double T2 = layer_flag ? getSimilarityThreshold(graph, match_second) : Tc;
+	if(distance(x, graph[*match_first].weight) > T1)
 	{
 		return false;
 	}
-	if(distance(x, graph[*match_second].weight) > getSimilarityThreshold(match_second))
+	if(distance(x, graph[*match_second].weight) > T2)
 	{
 		return false;
 	}
 	return true;
 }
 
-int SOINN::incrementEdgeAge(const VertexIterator &vertex)
+int SOINN::incrementEdgeAge(Graph &graph, const VertexIterator &vertex)
 {
 	OutEdgeIterator edge_out_current, edge_out_end;
 	boost::tie(edge_out_current, edge_out_end) = boost::out_edges(*vertex, graph);
@@ -169,7 +180,7 @@ int SOINN::incrementEdgeAge(const VertexIterator &vertex)
 	return 0;
 }
 
-void SOINN::updateWeights(const boost::numeric::ublas::vector<double> &x, const VertexIterator &vertex)
+void SOINN::updateWeights(Graph &graph, const boost::numeric::ublas::vector<double> &x, const VertexIterator &vertex)
 {
 	graph[*vertex].weight += E1(graph[*vertex].M) * (x - graph[*vertex].weight);
 	AdjacencyIterator vertex_current, vertex_end;
@@ -180,7 +191,7 @@ void SOINN::updateWeights(const boost::numeric::ublas::vector<double> &x, const 
 	}
 }
 
-void SOINN::deleteOldEdges()
+void SOINN::deleteOldEdges(Graph &graph)
 {
 	EdgeIterator edge_current, edge_end;
 	boost::tie(edge_current, edge_end) = boost::edges(graph);
@@ -197,10 +208,10 @@ void SOINN::deleteOldEdges()
 	}	
 }
 
-void SOINN::addNewNodeAndRemoveUnnecessaryNodes()
+void SOINN::addNewNodeAndRemoveUnnecessaryNodes(Graph &graph)
 {
-	Vertex q = findMaxErrorNode();
-	Vertex f = findMaxLocErrorNode(q);
+	Vertex q = findMaxErrorNode(graph);
+	Vertex f = findMaxLocErrorNode(graph ,q);
 	Vertex vertex = boost::add_vertex(graph);
 	graph[vertex].weight = (graph[q].weight + graph[f].weight) * 0.5;
 	graph[vertex].error = alpha1 * (graph[q].error + graph[f].error);
@@ -231,7 +242,7 @@ void SOINN::addNewNodeAndRemoveUnnecessaryNodes()
 		boost::clear_vertex(vertex, graph);
 		boost::remove_vertex(vertex, graph);
 	}
-	double mean_m = getMeanM();
+	double mean_m = getMeanM(graph);
 	VertexIterator vertex_current, vertex_end;
 	boost::tie(vertex_current, vertex_end) = boost::vertices(graph);
 	VertexIterator vertex_next;
@@ -250,7 +261,7 @@ void SOINN::addNewNodeAndRemoveUnnecessaryNodes()
 	}
 }
 
-Vertex SOINN::findMaxErrorNode()
+Vertex SOINN::findMaxErrorNode(Graph &graph)
 {
 	Vertex vertex_max_error;
 	double max_error = 0;
@@ -267,7 +278,7 @@ Vertex SOINN::findMaxErrorNode()
 	return vertex_max_error;
 }
 
-Vertex SOINN::findMaxLocErrorNode(const Vertex &vertex)
+Vertex SOINN::findMaxLocErrorNode(Graph &graph, const Vertex &vertex)
 {
 	Vertex vertex_max_error = vertex;
 	double max_error = 0;
@@ -284,7 +295,7 @@ Vertex SOINN::findMaxLocErrorNode(const Vertex &vertex)
 	return vertex_max_error;
 }
 
-double SOINN::getMeanM()
+double SOINN::getMeanM(Graph &graph)
 {
 	double mean = 0;
 	VertexIterator vertex_current, vertex_end;
@@ -297,9 +308,9 @@ double SOINN::getMeanM()
 	return mean;
 }
 
-void SOINN::classify()
+void SOINN::classifyGraph(Graph &graph)
 {
-	addNewNodeAndRemoveUnnecessaryNodes();
+	addNewNodeAndRemoveUnnecessaryNodes(graph);
 	size_t index = 0;
 	BGL_FORALL_VERTICES(v, graph, Graph)
 	{
@@ -314,36 +325,38 @@ void SOINN::classify()
 	}
 }
 
-Graph SOINN::getGraph()
+void SOINN::classify()
 {
-	return graph;
+	addNewNodeAndRemoveUnnecessaryNodes(first_layer);
+	classifyGraph(first_layer);
+	iteration_count = 0;
+	trainSecondLayer();
+	classifyGraph(second_layer);
 }
 
-VertexProperties SOINN::getBestMatch(const boost::numeric::ublas::vector<double> &x)
+Graph SOINN::getGraph()
 {
-	double best_dist = std::numeric_limits<double>::max();
-	VertexIterator best_match;
+	return first_layer;
+}
 
-	VertexIterator vertex_current, vertex_end;
-	boost::tie(vertex_current, vertex_end) = boost::vertices(graph);
+Graph SOINN::getFirstLayer()
+{
+	return first_layer;
+}
 
-	for(; vertex_current != vertex_end; ++vertex_current)
-	{
-		double dist = distance(x, graph[*vertex_current].weight);
-		if(dist < best_dist)
-		{
-			best_match = vertex_current;
-			best_dist = dist;
-		}
-	}
-	return graph[*best_match];
+Graph SOINN::getSecondLayer()
+{
+	return second_layer;
+}
+
+void SOINN::clearGraph(Graph &graph)
+{
+	graph.clear();
 }
 
 void SOINN::clear()
 {
-	graph.clear();
-	class_count = 0;
-	iteration_count = 0;
+	clearGraph(first_layer);
 }
 
 void SOINN::save(std::string filename)
@@ -359,4 +372,81 @@ void SOINN::load(std::string filename)
    	std::ifstream ifs(filename.c_str());
 	boost::archive::xml_iarchive ia(ifs);
 	ia >> BOOST_SERIALIZATION_NVP(*const_cast<SOINN*>(this));
+}
+
+void SOINN::calcT()
+{
+	double dw = 0.;
+	EdgeIterator edge_begin, edge_end;
+	boost::tie(edge_begin, edge_end) = boost::edges(first_layer);
+	for(EdgeIterator i = edge_begin; i != edge_end; ++i)
+	{
+		dw += distance(first_layer[i->m_source].weight, first_layer[i->m_target].weight);
+	}
+	dw /= boost::num_edges(first_layer);
+	std::map<int, std::map<int, double>> db;
+	for(int i = 0; i < class_count; ++i)
+	{
+		for(int j = 0; j < class_count; ++j)
+		{
+			db[i][j] = 0.;
+		}
+	}
+	VertexIterator vertex_begin, vertex_end;
+	boost::tie(vertex_begin, vertex_end) = boost::vertices(first_layer);
+	for(VertexIterator i = vertex_begin; i != vertex_end; ++i)
+	{
+		for(VertexIterator j = vertex_begin; j != vertex_end; ++j)
+		{
+			if(first_layer[*i].class_id != first_layer[*j].class_id)
+			{
+				double dist_tmp = distance(first_layer[*i].weight, first_layer[*j].weight);
+				if(dist_tmp > db[first_layer[*i].class_id][first_layer[*j].class_id])
+				{
+					db[first_layer[*i].class_id][first_layer[*j].class_id] = dist_tmp;
+				}
+			}
+		}
+	}
+	Tc = std::numeric_limits<double>::max();
+	for(int i = 0; i < class_count; ++i)
+	{
+		for(int j = 0; j < class_count; ++j)
+		{
+			if(db[i][j] > dw && db[i][j] < Tc)
+			{
+				Tc = db[i][j];
+			}
+		}
+	}
+}
+
+void SOINN::trainSecondLayer()
+{
+	layer_flag = 0;
+
+	clearGraph(second_layer);
+	calcT();
+	std::vector<VertexIterator> data;
+	VertexIterator vertex_begin, vertex_end;
+	boost::tie(vertex_begin, vertex_end) = boost::vertices(first_layer);
+	for(VertexIterator i = vertex_begin; i != vertex_end; ++i)
+	{
+		data.push_back(i);
+	}
+	initGraph(second_layer, first_layer[*data[0]].weight, first_layer[*data[1]].weight);
+	std::random_shuffle(data.begin(), data.end());
+	//BOOST_FOREACH(VertexIterator v, data)
+	//{
+	//	addSignalInGraph(second_layer, first_layer[*v].weight);
+	//}
+	int size = data.size();
+	for(int i = 0; i < 2000; ++i)
+	{
+		std::cout<<i<<"\n";
+		int id = std::rand() % size;
+		addSignalInGraph(second_layer, first_layer[*data[id]].weight);
+	}
+
+	layer_flag = 1;
 }

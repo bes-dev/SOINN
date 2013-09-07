@@ -7,12 +7,18 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <random>
 #include <ctime>
+#include <fstream>
+#include <iostream>
+#include <boost/archive/xml_iarchive.hpp>
+#include <boost/archive/xml_oarchive.hpp>
 #include <boost/foreach.hpp>
 #include <boost/utility.hpp> 
 #include <boost/graph/connected_components.hpp>
 #include <boost/property_map/property_map.hpp>
 #include <boost/graph/iteration_macros.hpp>
 #include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/graphviz.hpp>
+#include <boost/graph/adj_list_serialize.hpp>
 
 using namespace boost::numeric;
 using namespace soinn;
@@ -42,7 +48,6 @@ void draw(cv::Mat &image, Graph graph)
 int main()
 {
 	std::srand(std::time(0));
-	//std::srand(0);
 	soinn::SOINN model;
 	ublas::vector<double> a(2);
 	ublas::vector<double> x1(2), x2(2);
@@ -52,42 +57,54 @@ int main()
 	x2(1) = 240;
 
 	model.init(x1, x2);
-	int sign = 1;
-	for(int i = 0; i < 4000; i++)
+	cv::Mat img = cv::imread("img.png", 0);
+	std::vector<cv::Point> points;
+	for(int i = 0; i < img.size().width; ++i)
+	{
+		for(int j = 0; j < img.size().height; ++j)
+		{
+			if(img.at<char>(cv::Point(i, j)) != 0)
+			{
+				points.push_back(cv::Point(i, j));
+			}
+		}
+	}
+
+	int size = points.size();
+	for(int i = 0; i < 10000; ++i)
 	{
 		std::cout<<i<<"\n";
-
-		a(0) = 200 + std::rand()%200;
-		a(1) = 200 + std::rand()%200;
-
-		//int rnd = std::rand()%3;
-		//if(rnd == 0)
-		//{
-		//	a(0) = 300 + std::rand()%40;
-		//	a(1) = 220 + std::rand()%40;
-		//}
-		//else if(rnd == 1)
-		//{
-		//	a(0) = 420 + std::rand()%40;
-		//	a(1) = 290 + std::rand()%40;
-		//}
-		//else
-		//{
-		//	a(0) = 100 + std::rand()%40;
-		//	a(1) = 120 + sign*std::sqrt(400-(a(0)-120)*(a(0)-120));
-		//	sign *= -1;
-		//}
-
+		int id = std::rand() % size;
+		a(0) = points[id].x;
+		a(1) = points[id].y;
 		model.addSignal(a);
 	}
+
 	model.classify();
-	cv::Mat img(480, 640, CV_32FC3);
-	cv::rectangle(img, cv::Point(200, 200), cv::Point(400, 400), cv::Scalar(0, 255, 0));
-	//cv::rectangle(img, cv::Point(300, 220), cv::Point(340, 260), cv::Scalar(0, 255, 0));
-	//cv::rectangle(img, cv::Point(420, 290), cv::Point(460, 330), cv::Scalar(0, 255, 0));
-	//cv::circle(img, cv::Point(120,120), 20, cv::Scalar(0, 255, 0));
-	draw(img, model.getGraph());
+	//soinn::SOINN model;
+	//model.load("filename.xml");
+
 	cv::imshow("img", img);
+
+	cv::Mat img1(480, 640, CV_32FC3);
+	//cv::rectangle(img1, cv::Point(200, 200), cv::Point(400, 400), cv::Scalar(0, 255, 0));
+	//cv::rectangle(img1, cv::Point(300, 220), cv::Point(340, 260), cv::Scalar(0, 255, 0));
+	//cv::rectangle(img1, cv::Point(420, 290), cv::Point(460, 330), cv::Scalar(0, 255, 0));
+	//cv::circle(img1, cv::Point(120,120), 20, cv::Scalar(0, 255, 0));
+
+	draw(img1, model.getFirstLayer());
+	//draw(img1, model.getGraph());
+	cv::imshow("img1", img1);
+
+
+	cv::Mat img2(480, 640, CV_32FC3);
+	draw(img2, model.getSecondLayer());
+	cv::imshow("img2", img2);
+
+//	std::cout<<boost::num_vertices(model.getFirstLayer())<<"; "<<boost::num_vertices(model.getSecondLayer());
+
+	model.save("filename.xml");
+
 	cv::waitKey();
 	return 0;
 }

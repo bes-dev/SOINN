@@ -53,19 +53,22 @@ namespace soinn
 	class SOINN
 	{
 	public:
-		SOINN(int lambda = 30, int age_max = 10, double C = 1., double alpha1 = 0.16, double alpha2 = 0.25, double alpha3 = 0.25, double beta = 0.67, double gamma = 0.75);
+		SOINN(int lambda = 100, int age_max = 100, double C = 1., double alpha1 = 0.16, double alpha2 = 0.25, double alpha3 = 0.25, double beta = 0.67, double gamma = 0.75);
 		~SOINN();
 
 		void init(boost::numeric::ublas::vector<double> v1, boost::numeric::ublas::vector<double> v2);
-		int addSignal(const boost::numeric::ublas::vector<double> &x);
-		VertexProperties getBestMatch(const boost::numeric::ublas::vector<double> &x);
+		void addSignal(const boost::numeric::ublas::vector<double> &x);
 		void classify();
 		void save(std::string filename);
 		void load(std::string filename);
 		void clear();
 		Graph getGraph();
+		Graph getFirstLayer();
+		Graph getSecondLayer();
 	private:
-		Graph graph;
+		//Graph graph;
+		Graph first_layer;
+		Graph second_layer;
 		int class_count;
 		int iteration_count;
 		int age_max;
@@ -74,17 +77,28 @@ namespace soinn
 		double beta, gamma;
 		double C;
 
-		int findBestMatches(const boost::numeric::ublas::vector<double> &x, VertexIterator &match_first, VertexIterator &match_second);
-		int incrementEdgeAge(const VertexIterator &vertex);
-		void updateWeights(const boost::numeric::ublas::vector<double> &x, const VertexIterator &vertex);
-		void deleteOldEdges();
-		void addNewNodeAndRemoveUnnecessaryNodes();
-		Vertex findMaxErrorNode();
-		Vertex findMaxLocErrorNode(const Vertex &vertex);
+		bool layer_flag;
+		double Tc;
+
+		void trainSecondLayer();
+		void calcT();
+
+		void initGraph(Graph &graph, boost::numeric::ublas::vector<double> v1, boost::numeric::ublas::vector<double> v2);
+		void addSignalInGraph(Graph &graph, const boost::numeric::ublas::vector<double> &x);
+		void classifyGraph(Graph &graph);
+		void clearGraph(Graph &graph);
+
+		int findBestMatches(Graph &graph, const boost::numeric::ublas::vector<double> &x, VertexIterator &match_first, VertexIterator &match_second);
+		int incrementEdgeAge(Graph &graph, const VertexIterator &vertex);
+		void updateWeights(Graph &graph, const boost::numeric::ublas::vector<double> &x, const VertexIterator &vertex);
+		void deleteOldEdges(Graph &graph);
+		void addNewNodeAndRemoveUnnecessaryNodes(Graph &graph);
+		Vertex findMaxErrorNode(Graph &graph);
+		Vertex findMaxLocErrorNode(Graph &graph, const Vertex &vertex);
 		double distance(const boost::numeric::ublas::vector<double> &a, const boost::numeric::ublas::vector<double> &b);
-		double getSimilarityThreshold(const VertexIterator &vertex);
-		double getMeanM();
-		bool isWithinThreshold(const boost::numeric::ublas::vector<double> &x, const VertexIterator &match_first, const VertexIterator &match_second);
+		double getSimilarityThreshold(Graph &graph, const VertexIterator &vertex);
+		double getMeanM(Graph &graph);
+		bool isWithinThreshold(Graph &graph, const boost::numeric::ublas::vector<double> &x, const VertexIterator &match_first, const VertexIterator &match_second);
 	private:
 		friend class boost::serialization::access;
 		template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -99,7 +113,7 @@ namespace soinn
 			ar & BOOST_SERIALIZATION_NVP(beta); 
 			ar & BOOST_SERIALIZATION_NVP(gamma);
 			ar & BOOST_SERIALIZATION_NVP(C);
-			ar & BOOST_SERIALIZATION_NVP(graph);
+			ar & BOOST_SERIALIZATION_NVP(first_layer);
 		}
 	};
 }
