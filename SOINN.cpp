@@ -325,18 +325,14 @@ void SOINN::classifyGraph(Graph &graph)
 	}
 }
 
-void SOINN::classify()
+void SOINN::classify(int iterations)
 {
 	addNewNodeAndRemoveUnnecessaryNodes(first_layer);
 	classifyGraph(first_layer);
 	iteration_count = 0;
-	trainSecondLayer();
+	trainSecondLayer(iterations);
+	iteration_count = 0;
 	classifyGraph(second_layer);
-}
-
-Graph SOINN::getGraph()
-{
-	return first_layer;
 }
 
 Graph SOINN::getFirstLayer()
@@ -421,7 +417,7 @@ void SOINN::calcT()
 	}
 }
 
-void SOINN::trainSecondLayer()
+void SOINN::trainSecondLayer(int iterations)
 {
 	layer_flag = 0;
 
@@ -436,12 +432,8 @@ void SOINN::trainSecondLayer()
 	}
 	initGraph(second_layer, first_layer[*data[0]].weight, first_layer[*data[1]].weight);
 	std::random_shuffle(data.begin(), data.end());
-	//BOOST_FOREACH(VertexIterator v, data)
-	//{
-	//	addSignalInGraph(second_layer, first_layer[*v].weight);
-	//}
 	int size = data.size();
-	for(int i = 0; i < 2000; ++i)
+	for(int i = 0; i < iterations; ++i)
 	{
 		std::cout<<i<<"\n";
 		int id = std::rand() % size;

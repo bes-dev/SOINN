@@ -58,11 +58,10 @@ namespace soinn
 
 		void init(boost::numeric::ublas::vector<double> v1, boost::numeric::ublas::vector<double> v2);
 		void addSignal(const boost::numeric::ublas::vector<double> &x);
-		void classify();
+		void classify(int iterations = 3000);
 		void save(std::string filename);
 		void load(std::string filename);
 		void clear();
-		Graph getGraph();
 		Graph getFirstLayer();
 		Graph getSecondLayer();
 	private:
@@ -80,7 +79,7 @@ namespace soinn
 		bool layer_flag;
 		double Tc;
 
-		void trainSecondLayer();
+		void trainSecondLayer(int iterations);
 		void calcT();
 
 		void initGraph(Graph &graph, boost::numeric::ublas::vector<double> v1, boost::numeric::ublas::vector<double> v2);
