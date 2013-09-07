@@ -70,30 +70,24 @@ int main()
 		}
 	}
 
-	int size = points.size();
-	for(int i = 0; i < 10000; ++i)
-	{
-		std::cout<<i<<"\n";
-		int id = std::rand() % size;
-		a(0) = points[id].x;
-		a(1) = points[id].y;
-		model.addSignal(a);
-	}
+	//int size = points.size();
+	//for(int i = 0; i < 10000; ++i)
+	//{
+	//	std::cout<<i<<"\n";
+	//	int id = std::rand() % size;
+	//	a(0) = points[id].x;
+	//	a(1) = points[id].y;
+	//	model.addSignal(a);
+	//}
 
-	model.classify();
-	//soinn::SOINN model;
-	//model.load("filename.xml");
+	//model.classify();
 
+	model.load("filename.xml");
 	cv::imshow("img", img);
 
 	cv::Mat img1(480, 640, CV_32FC3);
-	//cv::rectangle(img1, cv::Point(200, 200), cv::Point(400, 400), cv::Scalar(0, 255, 0));
-	//cv::rectangle(img1, cv::Point(300, 220), cv::Point(340, 260), cv::Scalar(0, 255, 0));
-	//cv::rectangle(img1, cv::Point(420, 290), cv::Point(460, 330), cv::Scalar(0, 255, 0));
-	//cv::circle(img1, cv::Point(120,120), 20, cv::Scalar(0, 255, 0));
 
 	draw(img1, model.getFirstLayer());
-	//draw(img1, model.getGraph());
 	cv::imshow("img1", img1);
 
 
@@ -101,9 +95,7 @@ int main()
 	draw(img2, model.getSecondLayer());
 	cv::imshow("img2", img2);
 
-//	std::cout<<boost::num_vertices(model.getFirstLayer())<<"; "<<boost::num_vertices(model.getSecondLayer());
-
-	model.save("filename.xml");
+	//model.save("filename.xml");
 
 	cv::waitKey();
 	return 0;

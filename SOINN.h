@@ -112,7 +112,9 @@ namespace soinn
 			ar & BOOST_SERIALIZATION_NVP(beta); 
 			ar & BOOST_SERIALIZATION_NVP(gamma);
 			ar & BOOST_SERIALIZATION_NVP(C);
+			ar & BOOST_SERIALIZATION_NVP(layer_flag);
 			ar & BOOST_SERIALIZATION_NVP(first_layer);
+			ar & BOOST_SERIALIZATION_NVP(second_layer);
 		}
 	};
 }
