@@ -1,3 +1,9 @@
+/*
+* SOINN.cpp
+*
+*      Author: Sergei Belousov aka BeS
+*/
+
 #include "SOINN.h"
 
 #include <boost/foreach.hpp>

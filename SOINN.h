@@ -1,3 +1,9 @@
+/*
+* SOINN.h
+*
+*      Author: Sergei Belousov aka BeS
+*/
+
 #ifndef __SOINN_H__
 #define __SOINN_H__
 
@@ -65,7 +71,6 @@ namespace soinn
 		Graph getFirstLayer();
 		Graph getSecondLayer();
 	private:
-		//Graph graph;
 		Graph first_layer;
 		Graph second_layer;
 		int class_count;
