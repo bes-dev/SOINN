@@ -20,7 +20,12 @@ set(Opencv_INCLUDE_DIR "C:/DevTools/opencv/opencv_bin/include")
 set(Opencv_LIBRARIES_DIR "C:/DevTools/opencv/opencv_bin/lib/Debug")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${Opencv_LIBRARIES_DIR})
 find_package(OpenCV REQUIRED)
-include_directories(${Opencv_INCLUDE_DIR})
+if(NOT OpenCV_FOUND)
+    message(SEND_ERROR "Faild to find Opencv")
+    return()
+else()
+    include_directories(${Opencv_INCLUDE_DIR})
+endif()
 #################################
 
 add_executable(${PROJECT_NAME} ${SRC_LIST})
