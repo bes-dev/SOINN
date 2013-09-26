@@ -5,13 +5,15 @@ aux_source_directory(. SRC_LIST)
 #################################
 set(Boost_INCLUDE_DIR "C:/Program Files (x86)/PCL 1.6.0/3rdParty/Boost/include")
 set(Boost_LIBRARIES_DIR "C:/Program Files (x86)/PCL 1.6.0/3rdParty/Boost/lib")
-find_package(Boost COMPONENTS ${BOOST_COMPONENTS} system filesystem serialization program_options regex thread date_time graph REQUIRED)
+find_package(Boost COMPONENTS ${BOOST_COMPONENTS} system filesystem serialization program_options graph REQUIRED)
 if(NOT Boost_FOUND)
     message(SEND_ERROR "Failed to find Boost")
     return()
 else()
     include_directories(${Boost_INCLUDE_DIRS})
+    link_directories(${Boost_LIBRARY_DIRS})
     add_definitions(-DBOOST_ALL_NO_LIB)
+    add_definitions(-DBOOST_ALL_DYN_LINK)
 endif()
 #################################
 
