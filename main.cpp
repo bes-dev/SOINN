@@ -123,13 +123,13 @@ int main(int argc, char **argv)
     {
         cv::imshow("classes", img);
 
-        cv::Mat img1(480, 640, CV_32FC3);
+        cv::Mat img1(img.size(), CV_32FC3);
 
         draw(img1, model.getFirstLayer());
         cv::imshow("first_layer", img1);
 
 
-        cv::Mat img2(480, 640, CV_32FC3);
+        cv::Mat img2(img.size(), CV_32FC3);
         draw(img2, model.getSecondLayer());
         cv::imshow("second_layer", img2);
         cv::waitKey();
